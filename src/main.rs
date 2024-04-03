@@ -7,6 +7,13 @@ use reqwest::Client;
 use reqwest::Error;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+use std::env;
+
+fn generate_basic_auth(username: &str, password: &str) -> String {
+    let auth_str = format!("{}:{}", username, password);
+    let auth_encoded = general_purpose::STANDARD.encode(auth_str);
+    format!("Basic {}", auth_encoded)
+}
 
 async fn send_post_request() -> Result<(), Error> {
     let content: Vec<u8> = tokio::fs::read("./images/face.png").await.unwrap();
@@ -21,14 +28,25 @@ async fn send_post_request() -> Result<(), Error> {
 
     let signup_id = "e2e-signup-bassam--2";
 
+    let orb_id = env::var("ORBID").unwrap();
+    let password = env::var("PASSWORD").unwrap();
+    let service_url = env::var("SERVICE_URL").unwrap();
+
+    println!("Username: {}", orb_id);
+    println!("Password: {}", password);
+    println!("Service URL: {}", service_url);
+
+    let auth_token = generate_basic_auth(&orb_id, &password);
+    println!("Auth Token: {}", auth_token);
+
     let get_resp = client
         .post(format!(
-            "https://data.orb.worldcoin.dev/api/v2/signups/{}/package",
-            signup_id
+            "{}/api/v2/signups/{}/package",
+            service_url, signup_id
         ))
-        .header("Authorization", "Basic ZTJlLW9yYi0xOmFiY3h5eg==")
+        .header("Authorization", auth_token)
         .json(&serde_json::json!({
-            "orbId": "e2e-orb-1",
+            "orbId": orb_id,
             "sessionId": "test-session-id",
             "checksum":encoded,
         }))
@@ -36,7 +54,7 @@ async fn send_post_request() -> Result<(), Error> {
         .await?;
     println!("Get Presigned POST Status: {}", get_resp.status());
     let body = get_resp.text().await?;
-    // println!("Presigned POST Body: {}", body);
+    println!("Presigned POST Body: {}\n", body);
 
     // Parse the JSON body
     let v: Value = serde_json::from_str(&body).unwrap();
