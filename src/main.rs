@@ -41,7 +41,7 @@ async fn send_post_request() -> Result<(), Error> {
 
     let get_resp = client
         .post(format!(
-            "{}/api/v2/signups/{}/package",
+            "{}/api/v3/signups/{}/package",
             service_url, signup_id
         ))
         .header("Authorization", auth_token)
